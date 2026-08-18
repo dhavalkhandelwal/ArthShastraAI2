@@ -1,0 +1,17 @@
+streamlit
+pandas
+numpy
+seaborn
+matplotlib
+langchain
+langchain-google-genai
+langchain-community
+faiss-cpu
+sentence-transformers
+PyPortfolioOpt
+PyMuPDF
+Pillow
+scipy
+torch
+transformers
+reportlab
