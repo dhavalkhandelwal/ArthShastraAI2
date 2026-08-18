@@ -19,7 +19,7 @@ st.set_page_config(
 
 # ── API Key ────────────────────────────────────────────────────────────────────
 # 👉 PASTE YOUR GEMINI API KEY HERE:
-GEMINI_API_KEY = "AQ.Ab8RN6JjndwW7_5ACOuIapnuH0-d0ExpqrwXKgx9t67bCNeYZg"
+GEMINI_API_KEY = ""
 
 # (Fallback to environment variable if not set above)
 if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
