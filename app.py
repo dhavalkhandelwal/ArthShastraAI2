@@ -58,6 +58,22 @@ def _get_api_key():
 # Routes
 # ══════════════════════════════════════════════════════════════════
 
+# ── Explicit static file serving (ensures Vercel compatibility) ──
+from flask import send_from_directory as _send_from_dir
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files explicitly — needed for Vercel deployment."""
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+    response = _send_from_dir(static_dir, filename)
+    # Set proper content-type headers for CSS & JS
+    if filename.endswith('.css'):
+        response.headers['Content-Type'] = 'text/css; charset=utf-8'
+    elif filename.endswith('.js'):
+        response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+    return response
+
+
 @app.route('/')
 def index():
     api_key = _get_api_key()
