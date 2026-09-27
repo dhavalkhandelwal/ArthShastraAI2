@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArthShastraAI — AI-Powered Portfolio Analytics</title>
+    <meta name="description" content="Institutional-grade portfolio analytics powered by AI. Sharpe, VaR, CVaR, Efficient Frontier, Stress Testing — all in one platform.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Spinner Overlay -->
+    <div class="spinner-overlay" id="spinner-overlay">
+        <div style="text-align:center;">
+            <div class="spinner"></div>
+            <div class="spinner-text" id="spinner-text">Processing...</div>
+        </div>
+    </div>
+
+    <!-- Mobile Toggle -->
+    <button class="mobile-toggle" id="mobile-toggle">☰</button>
+
+    <div class="app-layout">
+        <!-- ══ Sidebar ══════════════════════════════════════════════ -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">📊 ArthShastraAI</div>
+
+            <!-- API Key -->
+            <div class="nav-section">
+                <div class="nav-label">🔑 Gemini API Key</div>
+                <div class="form-group" style="margin-bottom:0.5rem;">
+                    <input type="password" id="api-key-input" placeholder="Paste your API key..." value="{{ api_key_masked }}">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="saveApiKey()" style="width:100%; margin-bottom:0.5rem;">Save Key</button>
+                <div id="ai-status" class="{{ 'status-badge success' if ai_enabled else 'status-badge warning' }}">
+                    {{ '✅ AI enabled' if ai_enabled else '⚠️ AI disabled' }}
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Navigation -->
+            <div class="nav-section">
+                <div class="nav-label">Navigation</div>
+                <a class="nav-item active" data-page="analyzer" href="#">📊 Portfolio Analyzer</a>
+                <a class="nav-item" data-page="chat" href="#">💬 Ask Anything (Q&A)</a>
+            </div>
+
+            <hr class="divider">
+
+            <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.6;">
+                <strong>How to use:</strong><br>
+                1. Paste your Gemini API key above<br>
+                2. Go to <strong>Portfolio Analyzer</strong><br>
+                3. Upload a CSV with dates + prices<br>
+                4. View analysis, charts & AI insights
+            </div>
+        </aside>
+
+        <!-- ══ Main Content ═════════════════════════════════════════ -->
+        <main class="main-content">
+            <!-- Alert Area -->
+            <div id="alert-area"></div>
+
+            <!-- Hero -->
+            <div class="hero">
+                <h1>📊 ArthShastraAI</h1>
+                <p>Institutional-grade portfolio analytics — powered by AI, built for retail & professional investors.</p>
+                <div class="hero-cards">
+                    <div class="hero-card">
+                        <div class="hero-card-label" style="color:#38bdf8;">Problem Solved</div>
+                        <div class="hero-card-text">Retail investors have no access to institutional risk analytics</div>
+                    </div>
+                    <div class="hero-card">
+                        <div class="hero-card-label" style="color:#34d399;">Risk Analytics</div>
+                        <div class="hero-card-text">Sharpe, VaR, CVaR, Drawdown & Efficient Frontier in seconds</div>
+                    </div>
+                    <div class="hero-card">
+                        <div class="hero-card-label" style="color:#f472b6;">Stress Testing</div>
+                        <div class="hero-card-text">Simulate 2008 Crisis & COVID crash impact on your portfolio</div>
+                    </div>
+                    <div class="hero-card">
+                        <div class="hero-card-label" style="color:#fb923c;">AI Layer</div>
+                        <div class="hero-card-text">Gemini gives plain-English advice on your exact numbers</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ Page: Portfolio Analyzer ════════════════════════ -->
+            <div class="page active" id="page-analyzer">
+                <h2 class="section-title">🗂️ Portfolio Analyzer</h2>
+                <p class="section-subtitle">Upload a CSV with historical asset prices. ArthShastraAI will compute risk metrics, optimise allocations, and generate AI-powered insights.</p>
+
+                <!-- Upload Card -->
+                <div class="card">
+                    <div class="card-header">📁 Upload Portfolio Data</div>
+                    <div class="file-upload" id="drop-zone">
+                        <input type="file" id="csv-file" accept=".csv">
+                        <div class="file-upload-icon">📂</div>
+                        <div class="file-upload-text">Drop your CSV here or click to browse</div>
+                        <div class="file-upload-text" style="font-size:0.78rem; color:var(--text-muted); margin-top:0.3rem;">One date column + one numeric column per asset/ticker</div>
+                    </div>
+                    <div id="upload-info" class="hidden" style="margin-top:1rem;">
+                        <div class="alert alert-success" id="file-name">File selected</div>
+                    </div>
+                </div>
+
+                <!-- Config Card -->
+                <div class="card">
+                    <div class="card-header">⚙️ Configuration</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Date Column Name</label>
+                            <input type="text" id="date-col" placeholder="e.g. Date (leave blank for auto-detect)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Missing Values</label>
+                            <select id="fill-method">
+                                <option value="ffill">Forward fill</option>
+                                <option value="drop">Drop rows</option>
+                                <option value="interpolate">Linear interpolation</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Return Calculation</label>
+                            <select id="return-type">
+                                <option value="simple">Simple returns</option>
+                                <option value="log">Log returns</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="runAnalysis()">🚀 Run Analysis</button>
+                </div>
+
+                <!-- ════ Results Section ════════════════════════════ -->
+                <div id="results-section" class="hidden">
+                    <!-- KPIs -->
+                    <div class="kpi-row">
+                        <div class="kpi-card">
+                            <div class="kpi-icon">🏆</div>
+                            <div class="kpi-value" id="kpi-best-return">—</div>
+                            <div class="kpi-label">Best Return</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon">📉</div>
+                            <div class="kpi-value" id="kpi-avg-vol">—</div>
+                            <div class="kpi-label">Avg Volatility</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon">⭐</div>
+                            <div class="kpi-value" id="kpi-best-sharpe">—</div>
+                            <div class="kpi-label">Best Sharpe</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon">🕳️</div>
+                            <div class="kpi-value" id="kpi-max-dd">—</div>
+                            <div class="kpi-label">Max Drawdown</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs" data-group="results">
+                        <div class="tab active" data-target="tab-summary">📊 Summary Stats</div>
+                        <div class="tab" data-target="tab-charts">📈 Visualizations</div>
+                        <div class="tab" data-target="tab-ai">🤖 AI Analysis</div>
+                        <div class="tab" data-target="tab-ef">🎯 Efficient Frontier</div>
+                        <div class="tab" data-target="tab-stress">🏦 Stress Testing</div>
+                        <div class="tab" data-target="tab-regimes">🔄 Market Regimes</div>
+                    </div>
+
+                    <!-- Tab: Summary Stats -->
+                    <div class="tab-content active" data-group="results" id="tab-summary">
+                        <div class="card">
+                            <div class="card-header">Portfolio Summary Statistics</div>
+                            <div id="summary-table"></div>
+                            <hr class="divider">
+                            <div class="card-header">🔍 Key Findings</div>
+                            <div id="insights-list"></div>
+                            <hr class="divider">
+                            <button class="btn btn-secondary btn-sm" onclick="downloadSummaryCSV()">⬇️ Download Summary CSV</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Visualizations -->
+                    <div class="tab-content" data-group="results" id="tab-charts">
+                        <div class="card">
+                            <div class="card-header">📈 Cumulative Returns</div>
+                            <div class="chart-container" id="chart-cumulative"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">⚖️ Risk vs Return</div>
+                            <div class="chart-container" id="chart-risk-return"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">🔗 Asset Correlation Matrix</div>
+                            <div class="chart-container" id="chart-correlation"></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">📉 Rolling Volatility</div>
+                            <div class="chart-container" id="chart-rolling-vol"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: AI Analysis -->
+                    <div class="tab-content" data-group="results" id="tab-ai">
+                        <div class="card">
+                            <div class="card-header">🤖 AI-Powered Portfolio Analysis</div>
+                            <p class="section-subtitle">Get Gemini-powered insights on your portfolio data.</p>
+                            <button class="btn btn-primary" onclick="runAIAnalysis()">🧠 Generate AI Analysis</button>
+                            <hr class="divider">
+                            <div id="ai-result">
+                                <div class="alert alert-info">Click "Generate AI Analysis" to get AI-powered insights on your portfolio.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Efficient Frontier -->
+                    <div class="tab-content" data-group="results" id="tab-ef">
+                        <div class="card">
+                            <div class="card-header">🎯 Efficient Frontier — Optimal Allocations</div>
+                            <p class="section-subtitle">For any level of risk, there is an optimal mix of assets that maximises return (Markowitz, 1952).</p>
+                            <div class="chart-container" id="chart-ef"></div>
+                        </div>
+                        <div id="ef-compositions"></div>
+                    </div>
+
+                    <!-- Tab: Stress Testing -->
+                    <div class="tab-content" data-group="results" id="tab-stress">
+                        <div class="card">
+                            <div class="card-header">🏦 Portfolio Stress Testing</div>
+                            <p class="section-subtitle">Simulate how your portfolio would perform under major historical market crises.</p>
+                            <div id="stress-cards"></div>
+                            <hr class="divider">
+                            <div class="card-header">Comparison Table</div>
+                            <div id="stress-table"></div>
+                            <hr class="divider">
+                            <div class="card-header">Visual Comparison</div>
+                            <div class="chart-container" id="chart-stress"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Market Regimes -->
+                    <div class="tab-content" data-group="results" id="tab-regimes">
+                        <div class="card">
+                            <div class="card-header">🔄 Market Regime Detection</div>
+                            <p class="section-subtitle">Identifies Bull/Bear phases with High/Low Volatility across your data period.</p>
+                            <div id="regime-pills"></div>
+                            <hr class="divider">
+                            <div class="card-header">Performance by Regime</div>
+                            <div id="regime-table"></div>
+                            <hr class="divider">
+                            <div class="card-header">Regime Timeline</div>
+                            <div class="chart-container" id="chart-regimes"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ Page: Chat ═════════════════════════════════════ -->
+            <div class="page" id="page-chat">
+                <h2 class="section-title">💬 Financial Q&A — Ask Anything</h2>
+                <p class="section-subtitle">Ask any finance question — portfolio theory, market concepts, investing strategies, risk management. Powered by Gemini.</p>
+
+                <div class="card">
+                    <div class="chat-container" id="chat-messages">
+                        <!-- Messages rendered here -->
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chat-input" placeholder="Ask a finance question...">
+                        <button class="btn btn-primary" onclick="sendChatMessage()">Send</button>
+                        <button class="btn btn-danger btn-sm" onclick="clearChat()">🗑️</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                ArthShastraAI · Built by Dhawal Khandelwal · Flask + Google Gemini + Python
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
